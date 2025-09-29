@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-AI Dokter Remaja – Prototype Streamlit
-- Struktur kode dirapikan (PEP8)
-- Pemisahan utilitas, helper model, dan UI
-- Validasi kredensial & penanganan error yang lebih rapi
+AI Dokter Remaja – Prototype Streamlit (siap deploy)
+- Pakai st.secrets (fallback ke os.getenv untuk lokal)
+- Import dotenv opsional (tidak bikin crash di Cloud)
+- set_page_config dipanggil sekali
 """
 
 from __future__ import annotations
@@ -12,22 +12,28 @@ import os
 import re
 import requests
 import streamlit as st
-#from dotenv import load_dotenv
-#from openai import OpenAI
+from openai import OpenAI
 from typing import List, Dict, Tuple
 
 # ===============================================================
-# Setup & Konstanta
+# Setup: Secrets/Env & Konstanta
 # ===============================================================
-#load_dotenv()
-def get_secret(name, default=None):
-    # Cloud: dari st.secrets ; Lokal: dari env (kalau kamu jalanin via .env)
-    return st.secrets.get(name, os.getenv(name, default))
-OPENAI_API_KEY   = get_secret("OPENAI_API_KEY")
-OPENAI_MODEL     = get_secret("OPENAI_MODEL", "gpt-4o-mini")
-SENDGRID_API_KEY = get_secret("SENDGRID_API_KEY")
-EMAIL_FROM       = get_secret("EMAIL_FROM")
-TWILIO_ACCOUNT_SID = get_secret("TWILIO_ACCOUNT_SID")
+st.set_page_config(page_title="AI Dokter Remaja", page_icon="🩺", layout="centered")
+
+# (Opsional untuk lokal saja) load .env jika modul tersedia
+try:
+    from dotenv import load_dotenv  # type: ignore
+    load_dotenv()
+except Exception:
+    pass
+
+def get_secret(name: str, default: str | None = None) -> str:
+    """Cloud: ambil dari st.secrets; Lokal: dari os.getenv (mis. .env)."""
+    try:
+        # st.secrets bisa berupa Mapping-like; gunakan get agar aman
+        return st.secrets.get(name, os.getenv(name, default))  # type: ignore[attr-defined]
+    except Exception:
+        return os.getenv(name, default)
 
 APP_TITLE = (
     "Prototype Pemanfaatan Kecerdasan Buatan (AI) sebagai Alat Bantu Diagnosis "
@@ -35,26 +41,27 @@ APP_TITLE = (
 )
 APP_DESC = "Silakan jawab pertanyaan berikut untuk menganalisis masalah kesehatan anda."
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "").strip()
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+# Kunci & model
+OPENAI_API_KEY     = (get_secret("OPENAI_API_KEY", "") or "").strip()
+OPENAI_MODEL       = (get_secret("OPENAI_MODEL", "gpt-4o-mini") or "").strip()
 
 # SendGrid (Email)
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "").strip()
-EMAIL_FROM = os.getenv("EMAIL_FROM", "").strip()  # harus verified sender/domain di SendGrid
+SENDGRID_API_KEY   = (get_secret("SENDGRID_API_KEY", "") or "").strip()
+EMAIL_FROM         = (get_secret("EMAIL_FROM", "") or "").strip()  # harus verified sender/domain di SendGrid
 
 # Twilio (SMS) – opsional
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "").strip()
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "").strip()
-TWILIO_FROM = os.getenv("TWILIO_FROM", "").strip()
+TWILIO_ACCOUNT_SID = (get_secret("TWILIO_ACCOUNT_SID", "") or "").strip()
+TWILIO_AUTH_TOKEN  = (get_secret("TWILIO_AUTH_TOKEN", "") or "").strip()
+TWILIO_FROM        = (get_secret("TWILIO_FROM", "") or "").strip()
 
 MISSING_SENDGRID = not (SENDGRID_API_KEY and EMAIL_FROM)
 
-# Client OpenAI
+# Validasi minimum
 if not OPENAI_API_KEY:
-    st.set_page_config(page_title="AI Dokter Remaja", page_icon="🩺", layout="centered")
-    st.error("OPENAI_API_KEY belum disetel di environment / .env")
+    st.error("OPENAI_API_KEY belum disetel di Secrets/Environment. Set dulu di **Manage app → Settings → Secrets**.")
     st.stop()
 
+# Client OpenAI
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 
@@ -83,7 +90,6 @@ def _clean_md(s: str) -> str:
     s = re.sub(r"^#+\s*", "", s, flags=re.MULTILINE)
     s = re.sub(r"^\s*[-•]\s*", "- ", s, flags=re.MULTILINE)
     return s.strip()
-
 
 def extract_selected_sections(full_text: str) -> str:
     """
@@ -129,7 +135,6 @@ def extract_selected_sections(full_text: str) -> str:
     final = "\n\n".join(out_parts).strip()
     return (final[:8000] + "…") if len(final) > 8000 else final
 
-
 def normalize_msisdn(num: str) -> str:
     """Ubah 08xxxx menjadi +628xxxx; jaga jika sudah +..; hilangkan spasi/dash."""
     if not num:
@@ -145,10 +150,8 @@ def normalize_msisdn(num: str) -> str:
         return "+62" + s
     return s
 
-
 def is_valid_email(addr: str) -> bool:
     return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", addr or ""))
-
 
 def send_email_via_sendgrid(to_email: str, subject: str, html_body: str, text_body: str) -> None:
     if not SENDGRID_API_KEY or not EMAIL_FROM:
@@ -168,7 +171,6 @@ def send_email_via_sendgrid(to_email: str, subject: str, html_body: str, text_bo
     sg = SendGridAPIClient(SENDGRID_API_KEY)
     sg.send(message)
 
-
 def send_sms_via_twilio(text_body: str, to_number: str) -> str:
     if not (TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_FROM):
         raise RuntimeError("Kredensial Twilio belum lengkap (TWILIO_ACCOUNT_SID/AUTH_TOKEN/TWILIO_FROM).")
@@ -179,7 +181,6 @@ def send_sms_via_twilio(text_body: str, to_number: str) -> str:
     t_client = TwilioClient(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
     msg = t_client.messages.create(from_=TWILIO_FROM, to=to_number, body=text_body)
     return msg.sid
-
 
 def _extract_diagnoses_from_analysis(analysis_text: str) -> List[str]:
     """Ambil daftar diagnosis dari blok 'Kemungkinan Diagnosis'."""
@@ -209,23 +210,16 @@ def _extract_diagnoses_from_analysis(analysis_text: str) -> List[str]:
             out.append(d)
     return out
 
-
 def suggest_otc_plan(diagnoses: List[str], usia_tahun: int | str = 15, context_hint: str = "") -> Dict[str, object]:
-    """
-    Saran Obat OTC & Perawatan di Rumah.
-    - Tanpa fallback analgesik generik.
-    - Maks 7 poin agar ringkas.
-    - Return: {title, bullets, safety, md, html}
-    """
+    """Saran Obat OTC & Perawatan di Rumah (maks 7 poin)."""
     try:
-        usia = int(usia_tahun)  # noqa: F841 (disiapkan bila ingin validasi usia)
+        usia = int(usia_tahun)  # noqa: F841
     except Exception:
-        usia = 15  # default
+        usia = 15
 
     pool = " ".join(diagnoses or []).lower() + " " + (context_hint or "").lower()
     bullets: List[str] = []
 
-    # Ruam/gatal/alergi kulit
     if any(k in pool for k in ["ruam", "kemerahan", "gatal", "biduran", "urtikaria", "dermatitis", "alergi kulit"]):
         bullets += [
             "Oles **hydrocortisone 1%** tipis 1–2×/hari (maks 7 hari; jangan pada luka/infeksi).",
@@ -233,8 +227,6 @@ def suggest_otc_plan(diagnoses: List[str], usia_tahun: int | str = 15, context_h
             "**Lotion calamine** / **moisturizer hipoalergenik** secara rutin.",
             "Hindari pemicu (sabun keras, pewangi, makanan/paparan yang dicurigai).",
         ]
-
-    # Batuk berdahak
     if any(k in pool for k in ["batuk berdahak", "dahak", "lendir", "bronkitis", "mukus"]):
         bullets += [
             "**Guaifenesin** sesuai label (ekspektoran).",
@@ -243,48 +235,36 @@ def suggest_otc_plan(diagnoses: List[str], usia_tahun: int | str = 15, context_h
             "Madu 1 sdt sebelum tidur (khusus usia > 1 tahun).",
             "Dekongestan lokal **oksimetazolin 0,05%** sebelum tidur, **maks 3 hari**.",
         ]
-
-    # Batuk kering
     if any(k in pool for k in ["batuk kering", "non produktif"]):
         bullets += [
             "**Dextromethorphan** bila batuk mengganggu tidur.",
             "Hidrasi hangat, humidifier, dan permen pelega.",
         ]
-
-    # Pilek/hidung tersumbat
     if any(k in pool for k in ["pilek", "hidung tersumbat", "flu", "rhinitis", "nasal congestion"]):
         bullets += [
             "**Semprot saline** rutin.",
             "**Xylometazoline 0,1%** atau **Oxymetazoline 0,05%** sebelum tidur, **maks 3 hari**.",
             "Jika alergi dominan: **cetirizine/loratadine** 1×/hari.",
         ]
-
-    # Keseleo/sprain/strain
     if any(k in pool for k in ["keseleo", "sprain", "strain", "terkilir", "tendinit"]):
         bullets += [
             "**RICE**: Rest, Ice 10–15 menit 3–4×/hari (48 jam pertama), Compression, Elevation.",
             "Oles **gel diklofenak 1%** 3–4×/hari.",
             "Gunakan penyangga sendi sementara; kembali ke aktivitas bertahap.",
         ]
-
-    # Diare non-berdarah tanpa dehidrasi
     if any(k in pool for k in ["diare", "gastroenteritis", "mencret"]):
         bullets += [
             "**Oralit (ORS)** tiap BAB cair; minum sedikit tapi sering.",
             "**Zinc** 10–20 mg/hari selama 10–14 hari (bila tersedia).",
             "Hindari gorengan/pedas sementara; makan porsi kecil.",
         ]
-
-    # Nyeri tenggorokan
     if any(k in pool for k in ["nyeri tenggorokan", "sakit tenggorokan", "faringitis", "radang tenggorokan"]):
         bullets += [
             "Kumur **air garam hangat** 3–4×/hari; pelega tenggorokan/lozenges.",
             "Spray kumur antiseptik (mis. **povidone-iodine**) sesuai label.",
         ]
 
-    # Batasi 7 poin
     bullets = bullets[:7]
-
     safety = [
         "Selalu baca label & **ikuti dosis kemasan** (usia/berat).",
         "Hentikan bila muncul reaksi alergi/ruam hebat/bengkak/napas sesak.",
@@ -327,9 +307,8 @@ def generate_next_question(qa_pairs: List[Tuple[str, str]]) -> str:
             "content": "Berikut riwayat percakapan:\n" + "\n".join([f"Q: {q}\nA: {a}" for q, a in qa_pairs]),
         },
     ]
-    resp = openai_client.chat.completions.create(model="gpt-4o", messages=messages)
+    resp = openai_client.chat.completions.create(model=OPENAI_MODEL, messages=messages)
     return (resp.choices[0].message.content or "").strip()
-
 
 def fetch_research_summary() -> str:
     """Ambil cuplikan dari sumber resmi (best-effort, offline fallback aman)."""
@@ -350,7 +329,6 @@ def fetch_research_summary() -> str:
         return summary or "Tidak ada ringkasan yang dapat diambil saat ini."
     except Exception:
         return "Tidak dapat mengambil ringkasan riset saat ini."
-
 
 def analyze_health(bio: Dict[str, str], qa_pairs: List[Tuple[str, str]], research_summary: str) -> str:
     messages = [
@@ -379,7 +357,7 @@ def analyze_health(bio: Dict[str, str], qa_pairs: List[Tuple[str, str]], researc
             ),
         },
     ]
-    resp = openai_client.chat.completions.create(model="gpt-4o", messages=messages)
+    resp = openai_client.chat.completions.create(model=OPENAI_MODEL, messages=messages)
     return (resp.choices[0].message.content or "").strip()
 
 
@@ -387,11 +365,9 @@ def analyze_health(bio: Dict[str, str], qa_pairs: List[Tuple[str, str]], researc
 # UI
 # ===============================================================
 def _render_header() -> None:
-    st.set_page_config(page_title="AI Dokter Remaja", page_icon="🩺", layout="centered")
     st.markdown(f"<h1 style='text-align: center;'>{APP_TITLE}</h1>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align: center;'>{APP_DESC}</p>", unsafe_allow_html=True)
     st.divider()
-
 
 def _bio_form() -> None:
     """Form biodata yang menghilang setelah tombol 'Lanjut' ditekan."""
@@ -446,12 +422,10 @@ def _bio_form() -> None:
         placeholder.empty()
         st.rerun()
 
-
 def _render_chat_history() -> None:
     for msg in st.session_state.chat_log:
         role = "assistant" if msg["role"] == "assistant" else "user"
         st.chat_message(role).markdown(msg["content"])
-
 
 def _handle_chat_flow() -> None:
     user_input = st.chat_input("Jawaban Anda...") if st.session_state.step in ("chat", "done") else None
