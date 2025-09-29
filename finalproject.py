@@ -368,7 +368,7 @@ def _bio_form() -> None:
     with placeholder.container():
         st.markdown("**Isi biodata singkat:**")
         with st.form("bio_form", clear_on_submit=False):
-            nama = st.text_input("Nama (opsional, boleh kosong untuk privasi)",
+            nama = st.text_input("Nama (opsional)",
                                  value=st.session_state.bio_data.get("nama", ""))
             try:
                 usia_default = int(st.session_state.bio_data.get("usia", 13))
