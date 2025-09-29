@@ -13,7 +13,7 @@ import re
 import requests
 import streamlit as st
 #from dotenv import load_dotenv
-from openai import OpenAI
+#from openai import OpenAI
 from typing import List, Dict, Tuple
 
 # ===============================================================
