@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# Final Project!!
 """
 AI Dokter Remaja – Prototype Streamlit (siap deploy)
 - Pakai st.secrets (fallback ke os.getenv untuk lokal)
