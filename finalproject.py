@@ -1,11 +1,4 @@
 # Final Project!!
-"""
-AI Dokter Remaja – Prototype Streamlit (siap deploy)
-- Pakai st.secrets (fallback ke os.getenv untuk lokal)
-- Import dotenv opsional (tidak bikin crash di Cloud)
-- set_page_config dipanggil sekali
-"""
-
 from __future__ import annotations
 
 import os
