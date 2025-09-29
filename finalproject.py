@@ -12,14 +12,22 @@ import os
 import re
 import requests
 import streamlit as st
-from dotenv import load_dotenv
+#from dotenv import load_dotenv
 from openai import OpenAI
 from typing import List, Dict, Tuple
 
 # ===============================================================
 # Setup & Konstanta
 # ===============================================================
-load_dotenv()
+#load_dotenv()
+def get_secret(name, default=None):
+    # Cloud: dari st.secrets ; Lokal: dari env (kalau kamu jalanin via .env)
+    return st.secrets.get(name, os.getenv(name, default))
+OPENAI_API_KEY   = get_secret("OPENAI_API_KEY")
+OPENAI_MODEL     = get_secret("OPENAI_MODEL", "gpt-4o-mini")
+SENDGRID_API_KEY = get_secret("SENDGRID_API_KEY")
+EMAIL_FROM       = get_secret("EMAIL_FROM")
+TWILIO_ACCOUNT_SID = get_secret("TWILIO_ACCOUNT_SID")
 
 APP_TITLE = (
     "Prototype Pemanfaatan Kecerdasan Buatan (AI) sebagai Alat Bantu Diagnosis "
