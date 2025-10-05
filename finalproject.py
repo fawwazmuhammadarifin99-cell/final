@@ -461,7 +461,7 @@ def _handle_chat_flow() -> None:
 
         # ====== Siapkan konten email ======
         nama = st.session_state.bio_data.get("nama", "Siswa")
-        selected = extract_selected_sections(result)
+        selected = result
         subject = f"Hasil AI Dokter Remaja — {nama}"
 
         text_body = (
