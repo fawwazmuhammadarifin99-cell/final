@@ -11,7 +11,7 @@ from typing import List, Dict, Tuple
 # ===============================================================
 # Setup: Secrets/Env & Konstanta
 # ===============================================================
-st.set_page_config(page_title="AI Dokter Remaja", page_icon="🩺", layout="centered")
+st.set_page_config(page_title="FawAI Dokter Remaja", page_icon="🩺", layout="centered")
 
 # (Opsional untuk lokal saja) load .env jika modul tersedia
 try:
@@ -462,11 +462,11 @@ def _handle_chat_flow() -> None:
         # ====== Siapkan konten email ======
         nama = st.session_state.bio_data.get("nama", "Siswa")
         selected = extract_selected_sections(result)
-        subject = f"Hasil AI Dokter Remaja — {nama}"
+        subject = f"Hasil FawAI Dokter Remaja — {nama}"
 
         text_body = (
             f"Halo {nama},\n\n"
-            "Berikut hasil analisis AI Dokter Remaja:\n\n"
+            "Berikut hasil analisis FawAI Dokter Remaja:\n\n"
             f"{selected}\n\n"
             "-----\n"
             "Saran Obat OTC & Perawatan di Rumah\n"
@@ -477,7 +477,7 @@ def _handle_chat_flow() -> None:
 
         html_body = (
             f"<p>Halo <b>{nama}</b>,</p>"
-            f"<p>Berikut hasil analisis <b>AI Dokter Remaja</b>:</p>"
+            f"<p>Berikut hasil analisis <b>FawAI Dokter Remaja</b>:</p>"
             f"<div style='border:1px solid #eee;padding:12px;border-radius:8px;white-space:pre-wrap;font-family:system-ui,Segoe UI,Arial;'>"
             f"{selected}</div>"
             f"<div style='height:10px'></div>"
@@ -506,7 +506,7 @@ def _handle_chat_flow() -> None:
         if to_num:
             if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_FROM:
                 sms_text = (
-                    f"Halo {nama}, hasil AI Dokter Remaja sudah dikirim ke email Anda. "
+                    f"Halo {nama}, hasil FawAI Dokter Remaja sudah dikirim ke email Anda. "
                     f"Silakan cek inbox/SPAM dengan subjek: '{subject}'."
                 )
                 try:
