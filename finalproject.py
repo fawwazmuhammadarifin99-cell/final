@@ -29,7 +29,7 @@ def get_secret(name: str, default: str | None = None) -> str:
         return os.getenv(name, default)
 
 APP_TITLE = (
-    "Prototype Pemanfaatan Kecerdasan Buatan (AI) sebagai Alat Bantu Diagnosis Masalah Kesehatan Murid SMP Labschool Jakarta"
+    "Prototype Pemanfaatan Kecerdasan Buatan (AI) sebagai Alat Bantu Diagnosis Masalah Kesehatan Siswa-Siswi SMP Labschool Jakarta"
 )
 APP_DESC = "Silakan jawab pertanyaan berikut untuk menganalisis masalah kesehatan anda."
 
